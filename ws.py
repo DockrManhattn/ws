@@ -5,9 +5,6 @@ import sys
 import socket
 
 
-blue = "\033[94m"
-reset = "\033[0m"
-
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
@@ -20,11 +17,14 @@ def start_web_server(port=80):
     command = f"sudo python3 -m http.server {port}"
     try:
         subprocess.run(command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 1 and "Address already in use" in str(e):
+            print(f"There is already a web server running on port {port}.")
+        else:
+            print(f"Error starting the web server: {e}")
+        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(0)
-    except subprocess.CalledProcessError as e:
-        print(f"Error starting the web server: {e}")
-        sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description="Start a web server.")
