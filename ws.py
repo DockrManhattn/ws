@@ -14,7 +14,7 @@ def is_port_in_use(port):
 
 def start_web_server(port=80):
     if is_port_in_use(port):
-        print(f"{blue}There is already a web server running on port {port}.{reset}")
+        print(f"There is already a web server running on port {port}.")
         sys.exit(1)
 
     command = f"sudo python3 -m http.server {port}"
