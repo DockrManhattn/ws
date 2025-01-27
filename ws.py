@@ -38,4 +38,7 @@ def main():
         start_web_server(args.port)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("")
