@@ -19,10 +19,8 @@ def start_web_server(port=80):
 
     command = f"sudo python3 -m http.server {port}"
     try:
-        process = subprocess.Popen(command, shell=True, stdout=sys.stdout, stderr=subprocess.DEVNULL)
-        process.communicate()  # Wait for the process to finish
+        subprocess.run(command, shell=True, check=True)
     except KeyboardInterrupt:
-        process.terminate()  # Gracefully terminate the server
         sys.exit(0)
     except subprocess.CalledProcessError as e:
         print(f"Error starting the web server: {e}")
