@@ -19,7 +19,7 @@ def start_web_server(port=80):
 
     command = f"sudo python3 -m http.server {port}"
     try:
-        subprocess.run(command, shell=True, check=True)
+        subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except KeyboardInterrupt:
         sys.exit(0)
     except subprocess.CalledProcessError as e:
