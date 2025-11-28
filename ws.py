@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script Name: ws.py
-Description: Web Server using ~/.config/ws/config.json for configuration.
+Description: Python script template using ~/.config/ws/config.json for configuration.
 Author: dockrmanhattn@gmail.com
 Date: 2025-11-28
 """
@@ -22,6 +22,11 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 # =========================
+# Change these for each new script
+# =========================
+
+
+# =========================
 # static variables
 # =========================
 APPLICATION_NAME = os.path.splitext(os.path.basename(sys.argv[0]))[0]  # Derived from filename
@@ -35,14 +40,24 @@ DEFAULT_CONFIG = {
     "LOG_LEVEL": LOG_LEVEL_DEFAULT,
     "MAX_BYTES": 500_000,            # Approx size for ~1000 lines
     "BACKUP_COUNT": 5,               # Number of rotated logs to keep
-    "YELLOW": "\u001b[93m",
-    "RESET": "\u001b[0m",
-    "DEBUG_PREFIX": "\u001b[94m{🔧🐛[+]🐛🔧}\u001b[0m",
-    "INFO_PREFIX": "\u001b[93m{🌀🌵[+]🌵🌀}\u001b[0m",
-    "WARNING_PREFIX": "\u001b[93m{⚡⚡[+]⚡⚡}\u001b[0m",
-    "ERROR_PREFIX": "\u001b[91m{🔥💀[+]💀🔥}\u001b[0m",
-    "CRITICAL_PREFIX": "\u001b[91m{🚨🔥[+]🔥🚨}\u001b[0m",
     "CURRENT_DIR": os.getcwd()
+}
+
+LOG_STYLE = {
+    "BLUE": "\u001b[94m",
+    "YELLOW": "\u001b[93m",
+    "RED": "\u001b[91m",
+    "RESET": "\u001b[0m",
+    "DEBUG_EMOJI": "{🔧🐛[+]🐛🔧}",
+    "INFO_EMOJI": "{🌀🌵[+]🌵🌀}",
+    "WARNING_EMOJI": "{⚡⚡[+]⚡⚡}",
+    "ERROR_EMOJI": "{🔥💀[+]💀🔥}",
+    "CRITICAL_EMOJI": "{🚨🔥[+]🔥🚨}",
+    "DEBUG_PREFIX": "{BLUE}{DEBUG_EMOJI}{RESET}",
+    "INFO_PREFIX": "{YELLOW}{INFO_EMOJI}{RESET}",
+    "WARNING_PREFIX": "{YELLOW}{WARNING_EMOJI}{RESET}",
+    "ERROR_PREFIX": "{RED}{ERROR_EMOJI}{RESET}",
+    "CRITICAL_PREFIX": "{RED}{CRITICAL_EMOJI}{RESET}",
 }
 
 # =========================
@@ -50,6 +65,33 @@ DEFAULT_CONFIG = {
 # =========================
 CONFIG_DIR = os.path.expanduser(f"~/.config/{APPLICATION_NAME}")
 CONFIG_PATH = os.path.join(CONFIG_DIR, CONFIG_FILENAME)
+
+# =========================
+# Apply logging colors/placeholders
+# =========================
+def apply_color_prefixes(style):
+    replacements = {
+        "{BLUE}": style["BLUE"],
+        "{YELLOW}": style["YELLOW"],
+        "{RED}": style["RED"],
+        "{RESET}": style["RESET"],
+        "{DEBUG_EMOJI}": style["DEBUG_EMOJI"],
+        "{INFO_EMOJI}": style["INFO_EMOJI"],
+        "{WARNING_EMOJI}": style["WARNING_EMOJI"],
+        "{ERROR_EMOJI}": style["ERROR_EMOJI"],
+        "{CRITICAL_EMOJI}": style["CRITICAL_EMOJI"],
+    }
+
+    def resolve(template: str) -> str:
+        for token, value in replacements.items():
+            template = template.replace(token, value)
+        return template
+
+    style["DEBUG_PREFIX"] = resolve(style["DEBUG_PREFIX"])
+    style["INFO_PREFIX"] = resolve(style["INFO_PREFIX"])
+    style["WARNING_PREFIX"] = resolve(style["WARNING_PREFIX"])
+    style["ERROR_PREFIX"] = resolve(style["ERROR_PREFIX"])
+    style["CRITICAL_PREFIX"] = resolve(style["CRITICAL_PREFIX"])
 
 # =========================
 # Helper: Ensure Config Directory and Write Config
@@ -65,31 +107,37 @@ def write_config(config_data):
 # Load Configuration
 # =========================
 def load_config():
-    # If config doesn't exist, return defaults
-    if not os.path.exists(CONFIG_PATH):
-        return DEFAULT_CONFIG.copy()
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Load user config, merging with defaults."""
+    config = DEFAULT_CONFIG.copy()
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            try:
+                file_cfg = json.load(f)
+                if isinstance(file_cfg, dict):
+                    config.update(file_cfg)
+            except json.JSONDecodeError:
+                pass
+    return config
 
 # =========================
 # Custom Logging Formatter (Console)
 # =========================
 class CustomFormatter(logging.Formatter):
-    def __init__(self, config):
+    def __init__(self, style):
         super().__init__()
-        self.config = config
+        self.style = style
 
     def format(self, record):
         if record.levelno == logging.DEBUG:
-            prefix = self.config["DEBUG_PREFIX"]
+            prefix = self.style["DEBUG_PREFIX"]
         elif record.levelno == logging.INFO:
-            prefix = self.config["INFO_PREFIX"]
+            prefix = self.style["INFO_PREFIX"]
         elif record.levelno == logging.WARNING:
-            prefix = self.config["WARNING_PREFIX"]
+            prefix = self.style["WARNING_PREFIX"]
         elif record.levelno == logging.ERROR:
-            prefix = self.config["ERROR_PREFIX"]
+            prefix = self.style["ERROR_PREFIX"]
         elif record.levelno == logging.CRITICAL:
-            prefix = self.config["CRITICAL_PREFIX"]
+            prefix = self.style["CRITICAL_PREFIX"]
         else:
             prefix = ""
         return f"{prefix} {record.getMessage()}"
@@ -108,7 +156,7 @@ class PlainFormatter(logging.Formatter):
 # =========================
 # Setup Logging with Rotation
 # =========================
-def setup_logging(config, cli_log_level=None):
+def setup_logging(config, style, cli_log_level=None):
     console_level_str = cli_log_level or config.get("LOG_LEVEL", LOG_LEVEL_DEFAULT)
     console_level = getattr(logging, console_level_str.upper(), logging.INFO)
 
@@ -123,7 +171,7 @@ def setup_logging(config, cli_log_level=None):
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(console_level)
-    console_handler.setFormatter(CustomFormatter(config))
+    console_handler.setFormatter(CustomFormatter(style))
     logger.addHandler(console_handler)
 
     # Rotating file handler using config values
@@ -269,12 +317,14 @@ def start_web_server(logger, port=80):
 def main():
     args = parse_args()
     config = load_config()
+    style = LOG_STYLE.copy()
+    apply_color_prefixes(style)
 
     # Create the config file
     write_config(config)
     
     # Setup Logging
-    logger, log_file_path = setup_logging(config, cli_log_level=args.log_level)
+    logger, log_file_path = setup_logging(config, style, cli_log_level=args.log_level)
     
     # Show log messages for debugging if -log arg is passed.
     handle_log_option(args, log_file_path)
