@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Script Name: template_script.py
-Description: Python script template using ~/.config/<APPLICATION_NAME>/config.json for configuration.
-Author: John McGowan
-Date: YYYY-MM-DD
+Script Name: ws.py
+Description: Web Server using ~/.config/ws/config.json for configuration.
+Author: dockrmanhattn@gmail.com
+Date: 2025-11-28
 """
 
 # =========================
@@ -20,11 +20,6 @@ import subprocess
 import termios
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-
-# =========================
-# Change these for each new script
-# =========================
-
 
 # =========================
 # static variables
